@@ -26,7 +26,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['check_status'])) {
     <title>PT GRANT - Home</title>
     <style>
         body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 0; color: #333; }
-        header { background: #004080; color: white; padding: 20px; text-align: center; }
+        header { background: #004080; color: white; padding: 25px 20px; text-align: center; }
+        .grant-banner { background: #28a745; color: white; padding: 12px; font-size: 18px; font-weight: bold; text-align: center; border-radius: 6px; margin-bottom: 25px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .container { width: 85%; max-width: 1100px; margin: 30px auto; display: flex; gap: 30px; }
         .main-content { flex: 2; }
         .sidebar { flex: 1; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); height: fit-content; }
@@ -50,6 +51,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['check_status'])) {
 
 <div class="container">
     <div class="main-content">
+        <div class="grant-banner">
+            🎉 You may qualify for up to $25,000 – $250,000 in Grant Assistance!
+        </div>
+
         <h2>Select Assistance Program</h2>
         <div class="grid">
             <a href="apply.php?type=Personal Loan Assistance" class="card">

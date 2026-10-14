@@ -19,14 +19,14 @@ if (isset($_GET['logout'])) {
     exit;
 }
 
-// Update status
+// Admin Status Update (Pending, Processing, Approved, Declined)
 if (isset($_POST['update_status']) && isset($_SESSION['admin_logged'])) {
     $app_num = $_POST['app_number'];
     $new_status = $_POST['new_status'];
     update_application($app_num, ['status' => $new_status]);
 }
 
-// Reply to user message
+// Admin Chat Reply
 if (isset($_POST['admin_reply']) && isset($_SESSION['admin_logged'])) {
     $app_number = $_POST['app_number'];
     $reply_text = trim($_POST['reply_text']);
@@ -43,19 +43,19 @@ if (isset($_POST['admin_reply']) && isset($_SESSION['admin_logged'])) {
     <style>
         body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 0; color: #333; }
         header { background: #343a40; color: white; padding: 20px; text-align: center; }
-        .container { width: 95%; max-width: 1300px; margin: 30px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .container { width: 95%; max-width: 1350px; margin: 30px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         h2 { color: #343a40; }
         .login-box { width: 350px; margin: 100px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
         input[type="password"], input[type="text"], select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         .btn { background: #343a40; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: 14px; }
         .btn:hover { background: #23272b; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background: #343a40; color: white; }
         tr:nth-child(even) { background: #f9f9f9; }
         .logout { float: right; color: white; text-decoration: none; background: #c82333; padding: 5px 10px; border-radius: 4px; font-size: 14px; }
         .error { color: red; margin-bottom: 10px; }
-        .badge { background: #17a2b8; color: white; padding: 3px 8px; border-radius: 3px; font-size: 12px; }
+        .badge { background: #17a2b8; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px; }
     </style>
 </head>
 <body>
@@ -82,12 +82,12 @@ if (isset($_POST['admin_reply']) && isset($_SESSION['admin_logged'])) {
             <th>App #</th>
             <th>Applicant Name</th>
             <th>Assistance Type</th>
+            <th>Address</th>
             <th>Details / Business</th>
             <th>Status</th>
             <th>Documents</th>
             <th>Payment Info</th>
             <th>Chat / Reply</th>
-            <th>Submitted At</th>
         </tr>
         <?php
         $apps = get_applications();
@@ -98,8 +98,13 @@ if (isset($_POST['admin_reply']) && isset($_SESSION['admin_logged'])) {
         ?>
         <tr>
             <td><strong><?= htmlspecialchars($row['app_number']) ?></strong></td>
-            <td><?= htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) ?></td>
+            <td><?= htmlspecialchars($row['first_name'] . ' ' . $row['middle_name'] . ' ' . $row['last_name']) ?></td>
             <td><?= htmlspecialchars($row['assistance_type']) ?></td>
+            <td>
+                <?= htmlspecialchars($row['address1']) ?><br>
+                <?= !empty($row['address2']) ? htmlspecialchars($row['address2']) . '<br>' : '' ?>
+                <?= htmlspecialchars($row['city'] . ', ' . $row['state'] . ' ' . $row['zip']) ?>
+            </td>
             <td>
                 <?php if($row['is_business']): ?>
                     <span class="badge">Business</span><br><strong><?= htmlspecialchars($row['business_name']) ?></strong>
@@ -113,8 +118,8 @@ if (isset($_POST['admin_reply']) && isset($_SESSION['admin_logged'])) {
                 <form method="POST" style="display:inline;">
                     <input type="hidden" name="app_number" value="<?= $row['app_number'] ?>">
                     <select name="new_status" onchange="this.form.submit()" style="padding: 5px;">
-                        <option value="Pending Review" <?= $row['status']=='Pending Review'?'selected':'' ?>>Pending Review</option>
-                        <option value="Under Evaluation" <?= $row['status']=='Under Evaluation'?'selected':'' ?>>Under Evaluation</option>
+                        <option value="Pending" <?= $row['status']=='Pending'?'selected':'' ?>>Pending</option>
+                        <option value="Processing" <?= $row['status']=='Processing'?'selected':'' ?>>Processing</option>
                         <option value="Approved" <?= $row['status']=='Approved'?'selected':'' ?>>Approved</option>
                         <option value="Declined" <?= $row['status']=='Declined'?'selected':'' ?>>Declined</option>
                     </select>
@@ -139,7 +144,7 @@ if (isset($_POST['admin_reply']) && isset($_SESSION['admin_logged'])) {
                 <?php endif; ?>
             </td>
             <td>
-                <div style="max-height: 100px; overflow-y: scroll; font-size: 12px; border: 1px solid #ddd; padding: 5px; margin-bottom: 5px; background: #fff;">
+                <div style="max-height: 90px; overflow-y: scroll; font-size: 11px; border: 1px solid #ddd; padding: 4px; margin-bottom: 4px; background: #fff;">
                     <?php
                     $m_list = get_messages($row['app_number']);
                     foreach($m_list as $m) {
@@ -149,12 +154,9 @@ if (isset($_POST['admin_reply']) && isset($_SESSION['admin_logged'])) {
                 </div>
                 <form method="POST">
                     <input type="hidden" name="app_number" value="<?= $row['app_number'] ?>">
-                    <input type="text" name="reply_text" placeholder="Type reply..." required style="padding:4px; font-size:12px; width:70%;">
-                    <button type="submit" name="admin_reply" class="btn" style="padding:4px 8px; font-size:12px;">Send</button>
+                    <input type="text" name="reply_text" placeholder="Type reply..." required style="padding:4px; font-size:11px; width:65%;">
+                    <button type="submit" name="admin_reply" class="btn" style="padding:4px 6px; font-size:11px;">Send</button>
                 </form>
-            </td>
-            <td>
-                <small style="color: #666;"><?= $row['created_at'] ?></small>
             </td>
         </tr>
         <?php endforeach; endif; ?>

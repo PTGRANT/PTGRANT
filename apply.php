@@ -1,5 +1,5 @@
 <?php
-include 'config.php';
+include 'save.php';
 
 $assistance_type = isset($_GET['type']) ? $_GET['type'] : 'General Assistance';
 $submitted = false;
@@ -18,12 +18,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     $app_number = 'PTG-' . strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 6));
     
-    $stmt = $conn->prepare("INSERT INTO applications (app_number, assistance_type, first_name, last_name, middle_name, address, is_business, business_name, current_employer, bankruptcy, rent_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("ssssssisssd", $app_number, $assistance_type, $first_name, $last_name, $middle_name, $address, $is_business, $business_name, $current_employer, $bankruptcy, $rent_amount);
+    $new_app = [
+        'app_number' => $app_number,
+        'assistance_type' => $assistance_type,
+        'first_name' => $first_name,
+        'last_name' => $last_name,
+        'middle_name' => $middle_name,
+        'address' => $address,
+        'is_business' => $is_business,
+        'business_name' => $business_name,
+        'current_employer' => $current_employer,
+        'bankruptcy' => $bankruptcy,
+        'rent_amount' => $rent_amount,
+        'status' => 'Pending Review',
+        'document_path' => '',
+        'payment_method' => '',
+        'payment_receipt' => '',
+        'created_at' => date('Y-m-d H:i:s')
+    ];
     
-    if ($stmt->execute()) {
-        $submitted = true;
-    }
+    save_new_application($new_app);
+    $submitted = true;
 }
 ?>
 <!DOCTYPE html>

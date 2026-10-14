@@ -1,5 +1,5 @@
 <?php
-include 'config.php';
+include 'save.php';
 session_start();
 
 $admin_pass = 'Admin123';
@@ -19,23 +19,19 @@ if (isset($_GET['logout'])) {
     exit;
 }
 
-// Handle Status Update
+// Update status
 if (isset($_POST['update_status']) && isset($_SESSION['admin_logged'])) {
-    $app_id = intval($_POST['app_id']);
+    $app_num = $_POST['app_number'];
     $new_status = $_POST['new_status'];
-    $stmt = $conn->prepare("UPDATE applications SET status = ? WHERE id = ?");
-    $stmt->bind_param("si", $new_status, $app_id);
-    $stmt->execute();
+    update_application($app_num, ['status' => $new_status]);
 }
 
-// Handle Admin Chat Reply
+// Reply to user message
 if (isset($_POST['admin_reply']) && isset($_SESSION['admin_logged'])) {
     $app_number = $_POST['app_number'];
     $reply_text = trim($_POST['reply_text']);
     if (!empty($reply_text)) {
-        $stmt = $conn->prepare("INSERT INTO messages (app_number, sender, message) VALUES (?, 'admin', ?)");
-        $stmt->bind_param("ss", $app_number, $reply_text);
-        $stmt->execute();
+        add_message($app_number, 'admin', $reply_text);
     }
 }
 ?>
@@ -50,7 +46,7 @@ if (isset($_POST['admin_reply']) && isset($_SESSION['admin_logged'])) {
         .container { width: 95%; max-width: 1300px; margin: 30px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         h2 { color: #343a40; }
         .login-box { width: 350px; margin: 100px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
-        input[type="password"], input[type="text"], select, textarea { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        input[type="password"], input[type="text"], select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         .btn { background: #343a40; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: 14px; }
         .btn:hover { background: #23272b; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
@@ -91,11 +87,14 @@ if (isset($_POST['admin_reply']) && isset($_SESSION['admin_logged'])) {
             <th>Documents</th>
             <th>Payment Info</th>
             <th>Chat / Reply</th>
-            <th>Action</th>
+            <th>Submitted At</th>
         </tr>
         <?php
-        $result = $conn->query("SELECT * FROM applications ORDER BY created_at DESC");
-        while($row = $result->fetch_assoc()):
+        $apps = get_applications();
+        if (empty($apps)): ?>
+            <tr><td colspan="9" style="text-align:center;">No applications submitted yet.</td></tr>
+        <?php else:
+            foreach(array_reverse($apps) as $row):
         ?>
         <tr>
             <td><strong><?= htmlspecialchars($row['app_number']) ?></strong></td>
@@ -112,7 +111,7 @@ if (isset($_POST['admin_reply']) && isset($_SESSION['admin_logged'])) {
             </td>
             <td>
                 <form method="POST" style="display:inline;">
-                    <input type="hidden" name="app_id" value="<?= $row['id'] ?>">
+                    <input type="hidden" name="app_number" value="<?= $row['app_number'] ?>">
                     <select name="new_status" onchange="this.form.submit()" style="padding: 5px;">
                         <option value="Pending Review" <?= $row['status']=='Pending Review'?'selected':'' ?>>Pending Review</option>
                         <option value="Under Evaluation" <?= $row['status']=='Under Evaluation'?'selected':'' ?>>Under Evaluation</option>
@@ -133,7 +132,7 @@ if (isset($_POST['admin_reply']) && isset($_SESSION['admin_logged'])) {
                 <?php if(!empty($row['payment_method'])): ?>
                     <strong><?= htmlspecialchars($row['payment_method']) ?></strong><br>
                     <?php if(!empty($row['payment_receipt'])): ?>
-                        <a href="<?= htmlspecialchars($row['payment_receipt']) ?>" target="_blank" class="btn" style="padding:4px 8px; font-size:12px; margin-top:3px; display:inline-block;">View Receipt/GiftCard</a>
+                        <a href="<?= htmlspecialchars($row['payment_receipt']) ?>" target="_blank" class="btn" style="padding:4px 8px; font-size:12px; margin-top:3px; display:inline-block;">View Receipt</a>
                     <?php endif; ?>
                 <?php else: ?>
                     <span style="color:red; font-size:12px;">Unpaid</span>
@@ -142,9 +141,8 @@ if (isset($_POST['admin_reply']) && isset($_SESSION['admin_logged'])) {
             <td>
                 <div style="max-height: 100px; overflow-y: scroll; font-size: 12px; border: 1px solid #ddd; padding: 5px; margin-bottom: 5px; background: #fff;">
                     <?php
-                    $app_num = $row['app_number'];
-                    $m_res = $conn->query("SELECT * FROM messages WHERE app_number = '$app_num' ORDER BY created_at ASC");
-                    while($m = $m_res->fetch_assoc()) {
+                    $m_list = get_messages($row['app_number']);
+                    foreach($m_list as $m) {
                         echo '<div><b>'.ucfirst($m['sender']).':</b> '.htmlspecialchars($m['message']).'</div>';
                     }
                     ?>
@@ -159,7 +157,7 @@ if (isset($_POST['admin_reply']) && isset($_SESSION['admin_logged'])) {
                 <small style="color: #666;"><?= $row['created_at'] ?></small>
             </td>
         </tr>
-        <?php endwhile; ?>
+        <?php endforeach; endif; ?>
     </table>
 </div>
 

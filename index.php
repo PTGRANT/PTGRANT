@@ -1,20 +1,17 @@
 <?php
-include 'config.php';
+include 'save.php';
 
 $login_error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['check_status'])) {
     $first_name = trim($_POST['login_first_name']);
     $app_number = trim($_POST['login_app_number']);
     
-    $stmt = $conn->prepare("SELECT * FROM applications WHERE app_number = ? AND first_name = ?");
-    $stmt->bind_param("ss", $app_number, $first_name);
-    $stmt->execute();
-    $res = $stmt->get_result();
+    $app = get_application_by_num($app_number);
     
-    if ($res->num_rows > 0) {
+    if ($app && strcasecmp($app['first_name'], $first_name) === 0) {
         session_start();
-        $_SESSION['app_number'] = $app_number;
-        $_SESSION['first_name'] = $first_name;
+        $_SESSION['app_number'] = $app['app_number'];
+        $_SESSION['first_name'] = $app['first_name'];
         header("Location: status.php");
         exit;
     } else {

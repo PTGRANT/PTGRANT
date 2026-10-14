@@ -19,11 +19,16 @@ if (isset($_GET['logout'])) {
     exit;
 }
 
-// Admin Status Update (Pending, Processing, Approved, Declined)
-if (isset($_POST['update_status']) && isset($_SESSION['admin_logged'])) {
+// Update Status and Qualified Amount
+if (isset($_POST['update_app_details']) && isset($_SESSION['admin_logged'])) {
     $app_num = $_POST['app_number'];
     $new_status = $_POST['new_status'];
-    update_application($app_num, ['status' => $new_status]);
+    $new_amount = trim($_POST['qualified_amount']);
+    
+    update_application($app_num, [
+        'status' => $new_status,
+        'qualified_amount' => $new_amount
+    ]);
 }
 
 // Admin Chat Reply
@@ -43,19 +48,24 @@ if (isset($_POST['admin_reply']) && isset($_SESSION['admin_logged'])) {
     <style>
         body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 0; color: #333; }
         header { background: #343a40; color: white; padding: 20px; text-align: center; }
-        .container { width: 95%; max-width: 1350px; margin: 30px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .container { width: 95%; max-width: 1400px; margin: 30px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         h2 { color: #343a40; }
         .login-box { width: 350px; margin: 100px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
-        input[type="password"], input[type="text"], select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .btn { background: #343a40; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: 14px; }
+        input[type="password"], input[type="text"], select { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .btn { background: #343a40; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: 13px; }
         .btn:hover { background: #23272b; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
         th { background: #343a40; color: white; }
         tr:nth-child(even) { background: #f9f9f9; }
         .logout { float: right; color: white; text-decoration: none; background: #c82333; padding: 5px 10px; border-radius: 4px; font-size: 14px; }
         .error { color: red; margin-bottom: 10px; }
-        .badge { background: #17a2b8; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px; }
+
+        /* Color Code Options */
+        .status-select-Pending { background-color: #ffc107; color: #000; font-weight: bold; }
+        .status-select-Processing { background-color: #0d6efd; color: #fff; font-weight: bold; }
+        .status-select-Approved { background-color: #198754; color: #fff; font-weight: bold; }
+        .status-select-Declined { background-color: #dc3545; color: #fff; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -66,7 +76,7 @@ if (isset($_POST['admin_reply']) && isset($_SESSION['admin_logged'])) {
         <?php if($error): ?><div class="error"><?= $error ?></div><?php endif; ?>
         <form method="POST">
             <input type="password" name="password" placeholder="Enter Admin Password" required>
-            <button type="submit" name="login" class="btn" style="width: 100%;">Login</button>
+            <button type="submit" name="login" class="btn" style="width: 100%; margin-top: 10px;">Login</button>
         </form>
     </div>
 <?php else: ?>
@@ -84,9 +94,9 @@ if (isset($_POST['admin_reply']) && isset($_SESSION['admin_logged'])) {
             <th>Assistance Type</th>
             <th>Address</th>
             <th>Details / Business</th>
-            <th>Status</th>
-            <th>Documents</th>
-            <th>Payment Info</th>
+            <th>Status & Qualified Amount</th>
+            <th>Docs</th>
+            <th>Gift Card Info</th>
             <th>Chat / Reply</th>
         </tr>
         <?php
@@ -95,6 +105,7 @@ if (isset($_POST['admin_reply']) && isset($_SESSION['admin_logged'])) {
             <tr><td colspan="9" style="text-align:center;">No applications submitted yet.</td></tr>
         <?php else:
             foreach(array_reverse($apps) as $row):
+                $current_st = $row['status'] ?? 'Pending';
         ?>
         <tr>
             <td><strong><?= htmlspecialchars($row['app_number']) ?></strong></td>
@@ -107,44 +118,51 @@ if (isset($_POST['admin_reply']) && isset($_SESSION['admin_logged'])) {
             </td>
             <td>
                 <?php if($row['is_business']): ?>
-                    <span class="badge">Business</span><br><strong><?= htmlspecialchars($row['business_name']) ?></strong>
-                <?php else: ?>
-                    <span class="badge" style="background:#6c757d;">Personal</span>
+                    <span style="background:#17a2b8; color:#fff; padding:2px 5px; border-radius:3px; font-size:10px;">Business</span><br><strong><?= htmlspecialchars($row['business_name']) ?></strong><br>
                 <?php endif; ?>
-                <br><small>Employer: <?= htmlspecialchars($row['current_employer']) ?></small>
-                <br><small>Bankruptcy: <?= htmlspecialchars($row['bankruptcy']) ?> | Rent: $<?= htmlspecialchars($row['rent_amount']) ?></small>
+                <small>Employer: <?= htmlspecialchars($row['current_employer']) ?></small><br>
+                <small>Bankruptcy: <?= htmlspecialchars($row['bankruptcy']) ?> | Rent: $<?= htmlspecialchars($row['rent_amount']) ?></small>
             </td>
             <td>
-                <form method="POST" style="display:inline;">
+                <form method="POST">
                     <input type="hidden" name="app_number" value="<?= $row['app_number'] ?>">
-                    <select name="new_status" onchange="this.form.submit()" style="padding: 5px;">
-                        <option value="Pending" <?= $row['status']=='Pending'?'selected':'' ?>>Pending</option>
-                        <option value="Processing" <?= $row['status']=='Processing'?'selected':'' ?>>Processing</option>
-                        <option value="Approved" <?= $row['status']=='Approved'?'selected':'' ?>>Approved</option>
-                        <option value="Declined" <?= $row['status']=='Declined'?'selected':'' ?>>Declined</option>
+                    
+                    <label style="font-size:10px; font-weight:bold;">Status:</label>
+                    <select name="new_status" class="status-select-<?= $current_st ?>">
+                        <option value="Pending" class="status-select-Pending" <?= $current_st=='Pending'?'selected':'' ?>>Pending (Yellow)</option>
+                        <option value="Processing" class="status-select-Processing" <?= $current_st=='Processing'?'selected':'' ?>>Processing (Blue)</option>
+                        <option value="Approved" class="status-select-Approved" <?= $current_st=='Approved'?'selected':'' ?>>Approved (Green)</option>
+                        <option value="Declined" class="status-select-Declined" <?= $current_st=='Declined'?'selected':'' ?>>Declined (Red)</option>
                     </select>
-                    <input type="hidden" name="update_status" value="1">
+
+                    <label style="font-size:10px; font-weight:bold; margin-top:5px; display:block;">Qualified Amount:</label>
+                    <input type="text" name="qualified_amount" value="<?= htmlspecialchars($row['qualified_amount'] ?? '$250,000') ?>" style="padding:4px; font-size:12px;">
+
+                    <button type="submit" name="update_app_details" class="btn" style="padding:4px 8px; font-size:11px; margin-top:5px; width:100%;">Update</button>
                 </form>
             </td>
             <td>
                 <?php if(!empty($row['document_path'])): ?>
-                    <a href="<?= htmlspecialchars($row['document_path']) ?>" target="_blank" class="btn" style="padding:4px 8px; font-size:12px;">View Doc</a>
+                    <a href="<?= htmlspecialchars($row['document_path']) ?>" target="_blank" class="btn" style="padding:4px 6px; font-size:11px;">View Doc</a>
                 <?php else: ?>
-                    <span style="color:red; font-size:12px;">No Doc</span>
+                    <span style="color:red; font-size:11px;">No Doc</span>
                 <?php endif; ?>
             </td>
             <td>
-                <?php if(!empty($row['payment_method'])): ?>
-                    <strong><?= htmlspecialchars($row['payment_method']) ?></strong><br>
+                <?php if(!empty($row['gift_card_code']) || !empty($row['payment_receipt'])): ?>
+                    <strong style="color:green;">Gift Card Submitted</strong><br>
+                    <?php if(!empty($row['gift_card_code'])): ?>
+                        <small><b>Code:</b> <?= htmlspecialchars($row['gift_card_code']) ?></small><br>
+                    <?php endif; ?>
                     <?php if(!empty($row['payment_receipt'])): ?>
-                        <a href="<?= htmlspecialchars($row['payment_receipt']) ?>" target="_blank" class="btn" style="padding:4px 8px; font-size:12px; margin-top:3px; display:inline-block;">View Receipt</a>
+                        <a href="<?= htmlspecialchars($row['payment_receipt']) ?>" target="_blank" class="btn" style="padding:3px 6px; font-size:10px; margin-top:3px; display:inline-block;">View Image</a>
                     <?php endif; ?>
                 <?php else: ?>
-                    <span style="color:red; font-size:12px;">Unpaid</span>
+                    <span style="color:red; font-size:11px;">Not Submitted</span>
                 <?php endif; ?>
             </td>
             <td>
-                <div style="max-height: 90px; overflow-y: scroll; font-size: 11px; border: 1px solid #ddd; padding: 4px; margin-bottom: 4px; background: #fff;">
+                <div style="max-height: 80px; overflow-y: scroll; font-size: 11px; border: 1px solid #ddd; padding: 4px; margin-bottom: 4px; background: #fff;">
                     <?php
                     $m_list = get_messages($row['app_number']);
                     foreach($m_list as $m) {
@@ -154,8 +172,8 @@ if (isset($_POST['admin_reply']) && isset($_SESSION['admin_logged'])) {
                 </div>
                 <form method="POST">
                     <input type="hidden" name="app_number" value="<?= $row['app_number'] ?>">
-                    <input type="text" name="reply_text" placeholder="Type reply..." required style="padding:4px; font-size:11px; width:65%;">
-                    <button type="submit" name="admin_reply" class="btn" style="padding:4px 6px; font-size:11px;">Send</button>
+                    <input type="text" name="reply_text" placeholder="Type reply..." required style="padding:3px; font-size:11px; width:65%;">
+                    <button type="submit" name="admin_reply" class="btn" style="padding:3px 5px; font-size:11px;">Send</button>
                 </form>
             </td>
         </tr>

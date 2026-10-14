@@ -1,5 +1,5 @@
 <?php
-include 'config.php';
+include 'save.php';
 session_start();
 
 if (!isset($_SESSION['app_number']) || !isset($_SESSION['first_name'])) {
@@ -8,13 +8,7 @@ if (!isset($_SESSION['app_number']) || !isset($_SESSION['first_name'])) {
 }
 
 $app_number = $_SESSION['app_number'];
-$first_name = $_SESSION['first_name'];
-
-// Fetch application details
-$stmt = $conn->prepare("SELECT * FROM applications WHERE app_number = ?");
-$stmt->bind_param("s", $app_number);
-$stmt->execute();
-$app = $stmt->get_result()->fetch_assoc();
+$app = get_application_by_num($app_number);
 
 if (!$app) {
     session_destroy();
@@ -24,7 +18,7 @@ if (!$app) {
 
 $msg = '';
 
-// Handle Document Upload
+// Document Upload
 if (isset($_POST['upload_doc'])) {
     if (isset($_FILES['document']) && $_FILES['document']['error'] === UPLOAD_ERR_OK) {
         $upload_dir = 'uploads/';
@@ -33,16 +27,13 @@ if (isset($_POST['upload_doc'])) {
         $target_path = $upload_dir . $file_name;
         
         if (move_uploaded_file($_FILES['document']['tmp_name'], $target_path)) {
-            $stmt = $conn->prepare("UPDATE applications SET document_path = ? WHERE app_number = ?");
-            $stmt->bind_param("ss", $target_path, $app_number);
-            $stmt->execute();
+            $app = update_application($app_number, ['document_path' => $target_path]);
             $msg = "Document uploaded successfully!";
-            $app['document_path'] = $target_path;
         }
     }
 }
 
-// Handle Payment Submission
+// Payment Submission
 if (isset($_POST['submit_payment'])) {
     $payment_method = $_POST['payment_method'];
     $receipt_path = $app['payment_receipt'];
@@ -55,29 +46,22 @@ if (isset($_POST['submit_payment'])) {
         move_uploaded_file($_FILES['payment_receipt_file']['tmp_name'], $receipt_path);
     }
     
-    $stmt = $conn->prepare("UPDATE applications SET payment_method = ?, payment_receipt = ? WHERE app_number = ?");
-    $stmt->bind_param("sss", $payment_method, $receipt_path, $app_number);
-    $stmt->execute();
+    $app = update_application($app_number, [
+        'payment_method' => $payment_method,
+        'payment_receipt' => $receipt_path
+    ]);
     $msg = "Payment & receipt submitted successfully!";
-    $app['payment_method'] = $payment_method;
-    $app['payment_receipt'] = $receipt_path;
 }
 
-// Handle Chat Message Submission
+// Chat Messaging
 if (isset($_POST['send_message'])) {
     $message_text = trim($_POST['message_text']);
     if (!empty($message_text)) {
-        $stmt = $conn->prepare("INSERT INTO messages (app_number, sender, message) VALUES (?, 'user', ?)");
-        $stmt->bind_param("ss", $app_number, $message_text);
-        $stmt->execute();
+        add_message($app_number, 'user', $message_text);
     }
 }
 
-// Fetch Messages
-$msg_stmt = $conn->prepare("SELECT * FROM messages WHERE app_number = ? ORDER BY created_at ASC");
-$msg_stmt->bind_param("s", $app_number);
-$msg_stmt->execute();
-$messages = $msg_stmt->get_result();
+$messages = get_messages($app_number);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -105,7 +89,7 @@ $messages = $msg_stmt->get_result();
 <body>
 
 <header>
-    <h1>PT GRANT Portal <a href="index.php?logout=1" class="logout" onclick="sessionStorage.clear();">Logout</a></h1>
+    <h1>PT GRANT Portal <a href="index.php?logout=1" class="logout">Logout</a></h1>
 </header>
 
 <div class="container">
@@ -120,17 +104,17 @@ $messages = $msg_stmt->get_result();
         <p><strong>Current Status:</strong> <span style="color: #d9534f; font-weight: bold;"><?= htmlspecialchars($app['status']) ?></span></p>
     </div>
 
-    <!-- Document Upload Section -->
+    <!-- Supporting Document Upload -->
     <div class="section">
         <h3>Submit Supporting Documents</h3>
         <?php if ($app['is_business'] == 1): ?>
-            <p>Please upload your <strong>Proof of Business</strong> documents (e.g., business license, registration, or tax ID).</p>
+            <p>Please upload your <strong>Proof of Business</strong> document (e.g., business license, registration, or tax ID).</p>
         <?php else: ?>
-            <p>Please upload your <strong>Proof of Address</strong> and <strong>Proof of Name</strong> (e.g., utility bill and government ID).</p>
+            <p>Please upload your <strong>Proof of Address</strong> and <strong>Proof of Name</strong> (e.g., utility bill and photo ID).</p>
         <?php endif; ?>
 
         <?php if (!empty($app['document_path'])): ?>
-            <p style="color: green;">✔ Document uploaded successfully.</p>
+            <p style="color: green;">✔ Supporting document uploaded successfully.</p>
         <?php endif; ?>
 
         <form method="POST" enctype="multipart/form-data">
@@ -139,20 +123,20 @@ $messages = $msg_stmt->get_result();
         </form>
     </div>
 
-    <!-- Payment Section -->
+    <!-- Payment Upload -->
     <div class="section">
         <h3>Grant Application Fee / Processing Payment</h3>
-        <p>Select your preferred payment method (Gift Card or PayPal), complete the transfer, and upload your gift card details / payment receipt.</p>
+        <p>Select payment method (Gift Card or PayPal), complete transfer, and upload your gift card details or receipt.</p>
         
         <?php if (!empty($app['payment_receipt'])): ?>
-            <p style="color: green;">✔ Payment receipt submitted via <?= htmlspecialchars($app['payment_method']) ?>.</p>
+            <p style="color: green;">✔ Payment details submitted via <?= htmlspecialchars($app['payment_method']) ?>.</p>
         <?php endif; ?>
 
         <form method="POST" enctype="multipart/form-data">
             <label>Payment Method:</label>
             <select name="payment_method" required>
                 <option value="PayPal" <?= $app['payment_method']=='PayPal'?'selected':'' ?>>PayPal</option>
-                <option value="Gift Card" <?= $app['payment_method']=='Gift Card'?'selected':'' ?>>Gift Card (Enter Card Details in Receipt / File)</option>
+                <option value="Gift Card" <?= $app['payment_method']=='Gift Card'?'selected':'' ?>>Gift Card</option>
             </select>
 
             <label>Upload Payment Receipt / Gift Card Details Image:</label>
@@ -161,13 +145,13 @@ $messages = $msg_stmt->get_result();
         </form>
     </div>
 
-    <!-- Chat / Message Section -->
+    <!-- Admin Chat -->
     <div class="section">
         <h3>Admin Support Chat</h3>
         <div class="chat-box">
             <?php
-            if ($messages->num_rows > 0) {
-                while($m = $messages->fetch_assoc()) {
+            if (count($messages) > 0) {
+                foreach($messages as $m) {
                     $class = ($m['sender'] == 'user') ? 'chat-user' : 'chat-admin';
                     $senderName = ($m['sender'] == 'user') ? 'You' : 'Admin';
                     echo '<div class="chat-msg '.$class.'"><strong>'.$senderName.':</strong> '.htmlspecialchars($m['message']).'<br><small style="font-size:10px; color:#777;">'.$m['created_at'].'</small></div>';
@@ -178,7 +162,7 @@ $messages = $msg_stmt->get_result();
             ?>
         </div>
         <form method="POST">
-            <input type="text" name="message_text" placeholder="Type your message to admin..." required style="width: 78%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+            <input type="text" name="message_text" placeholder="Type message to admin..." required style="width: 78%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
             <button type="submit" name="send_message" class="btn" style="width: 18%;">Send</button>
         </form>
     </div>

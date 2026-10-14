@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PT Grant Application Portal</title>
+    <style>
+        :root {
+            --primary: #1E3A8A;
+            --primary-light: #3B82F6;
+            --secondary: #10B981;
+            --accent: #F59E0B;
+            --dark: #0F172A;
+            --light: #F8FAFC;
+            --card-bg: rgba(255, 255, 255, 0.95);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0f766e 100%);
+            background-attachment: fixed;
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Navigation Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg);
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            margin-bottom: 25px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-btns button {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .nav-btns button.active, .nav-btns button:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Main Card */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 35px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
+        }
+
+        .card-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .card-header h1 {
+            color: var(--dark);
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .card-header p {
+            color: #64748B;
+        }
+
+        /* Policy Notice Box */
+        .policy-box {
+            background: #EFF6FF;
+            border-left: 4px solid var(--primary-light);
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin-bottom: 25px;
+            font-size: 14px;
+            color: #1E40AF;
+        }
+
+        .policy-box ul {
+            margin-left: 20px;
+            margin-top: 8px;
+        }
+
+        .policy-box li {
+            margin-bottom: 4px;
+        }
+
+        /* Assistance Selection Grid */
+        .grid-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .option-card {
+            background: white;
+            border: 2px solid #E2E8F0;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .option-card:hover {
+            border-color: var(--primary-light);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.05);
+        }
+
+        .option-card.selected {
+            border-color: var(--secondary);
+            background: #ECFDF5;
+        }
+
+        .option-card h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: var(--dark);
+        }
+
+        .option-card p {
+            font-size: 12px;
+            color: #64748B;
+        }
+
+        /* Form Styling */
+        #application-form {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #CBD5E1;
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+            transition: border 0.3s;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .btn-submit {
+            width: 100%;
+            background: var(--secondary);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-submit:hover {
+            background: #059669;
+        }
+
+        /* Admin Table */
+        #admin-portal {
+            display: none;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #E2E8F0;
+            font-size: 14px;
+        }
+
+        th {
+            background: var(--primary);
+            color: white;
+        }
+
+        tr:hover {
+            background: #F8FAFC;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .badge-pending {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .success-msg {
+            display: none;
+            background: #D1FAE5;
+            color: #065F46;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header / Navigation -->
+    <header>
+        <div class="logo">
+            <span>🏛️</span> PT Grant Portal
+        </div>
+        <div class="nav-btns">
+            <button id="btn-user-view" class="active" onclick="switchView('user')">Apply Now</button>
+            <button id="btn-admin-view" onclick="switchView('admin')">Admin Portal</button>
+        </div>
+    </header>
+
+    <!-- USER VIEW: APPLICATION FORM -->
+    <div id="user-portal" class="card">
+        <div class="card-header">
+            <h1>PT Financial Assistance Program</h1>
+            <p>Select your required assistance type below to begin your application</p>
+        </div>
+
+        <!-- Terms and Conditions Banner -->
+        <div class="policy-box">
+            <strong>📌 Important Grant Guidelines & Terms:</strong>
+            <ul>
+                <li><strong>No Approval, No Fee:</strong> If your application is not approved, <u>no payment will be required</u>.</li>
+                <li><strong>Application Fee Upon Approval:</strong> Application fees are payable <em>only after approval</em> directly to your assigned agent via official PT Grant email.</li>
+                <li><strong>Doorstep Delivery Support:</strong> Any assistance requiring physical delivery will have delivery fees covered or paid using the awarded assistance funds.</li>
+                <li><strong>Refund Guarantee:</strong> Cash assistance options are refundable under approved program refund policy guidelines.</li>
+            </ul>
+        </div>
+
+        <!-- Step 1: Select Assistance Type -->
+        <label style="font-weight: bold; margin-bottom: 10px; display: block; color: var(--dark);">
+            Step 1: Choose Assistance Type
+        </label>
+        <div class="grid-options">
+            <div class="option-card" onclick="selectAssistance('Home Grant', this)">
+                <h3>🏡 Home Grant</h3>
+                <p>Support for home buyers & property owners</p>
+            </div>
+            <div class="option-card" onclick="selectAssistance('Mortgage & Loan Relief', this)">
+                <h3>💳 Mortgage & Loans</h3>
+                <p>Help paying off mortgage & active loans</p>
+            </div>
+            <div class="option-card" onclick="selectAssistance('Direct Cash Assistance', this)">
+                <h3>💵 Cash Assistance</h3>
+                <p>Direct financial help (Refundable)</p>
+            </div>
+            <div class="option-card" onclick="selectAssistance('Doorstep Delivery Grant', this)">
+                <h3>📦 Doorstep Delivery Grant</h3>
+                <p>Physical grants delivered with fee coverage</p>
+            </div>
+        </div>
+
+        <!-- Submission Notification -->
+        <div id="success-message" class="success-msg">
+            🎉 Application submitted successfully! Your details have been transmitted to the Admin Portal. An official PT Grant agent will review your application soon.
+        </div>
+
+        <!-- Step 2: Full Form (Pulls up dynamically) -->
+        <form id="application-form" onsubmit="handleFormSubmit(event)">
+            <input type="hidden" id="selected-assistance-type" name="assistanceType">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="fullname">Full Name *</label>
+                    <input type="text" id="fullname" required placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Address *</label>
+                    <input type="email" id="email" required placeholder="john@example.com">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="phone">Phone Number *</label>
+                    <input type="tel" id="phone" required placeholder="(555) 000-0000">
+                </div>
+                <div class="form-group">
+                    <label for="amount">Requested Amount ($) *</label>
+                    <input type="number" id="amount" required placeholder="e.g. 10000">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="address">Delivery / Physical Address *</label>
+                <textarea id="address" rows="2" required placeholder="Enter street address for documentation/doorstep delivery"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="reason">Brief Reason for Application *</label>
+                <textarea id="reason" rows="3" required placeholder="Describe how you plan to use this assistance..."></textarea>
+            </div>
+
+            <button type="submit" class="btn-submit">Submit Grant Application</button>
+        </form>
+    </div>
+
+    <!-- ADMIN PORTAL VIEW -->
+    <div id="admin-portal" class="card">
+        <div class="card-header">
+            <h1>Admin Dashboard Portal</h1>
+            <p>Live incoming PT Grant applications</p>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Applicant</th>
+                        <th>Assistance Type</th>
+                        <th>Amount</th>
+                        <th>Contact</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-table-body">
+                    <!-- Dynamic Rows Will Appear Here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    let applications = JSON.parse(localStorage.getItem('pt_grant_applications')) || [];
+
+    function switchView(view) {
+        const userPortal = document.getElementById('user-portal');
+        const adminPortal = document.getElementById('admin-portal');
+        const btnUser = document.getElementById('btn-user-view');
+        const btnAdmin = document.getElementById('btn-admin-view');
+
+        if(view === 'user') {
+            userPortal.style.display = 'block';
+            adminPortal.style.display = 'none';
+            btnUser.classList.add('active');
+            btnAdmin.classList.remove('active');
+        } else {
+            userPortal.style.display = 'none';
+            adminPortal.style.display = 'block';
+            btnAdmin.classList.add('active');
+            btnUser.classList.remove('active');
+            renderAdminTable();
+        }
+    }
+
+    function selectAssistance(type, element) {
+        document.querySelectorAll('.option-card').forEach(card => card.classList.remove('selected'));
+        element.classList.add('selected');
+
+        document.getElementById('selected-assistance-type').value = type;
+
+        const form = document.getElementById('application-form');
+        form.style.display = 'block';
+        form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function handleFormSubmit(e) {
+        e.preventDefault();
+
+        const newApp = {
+            id: Date.now(),
+            date: new Date().toLocaleDateString(),
+            type: document.getElementById('selected-assistance-type').value,
+            name: document.getElementById('fullname').value,
+            email: document.getElementById('email').value,
+            phone: document.getElementById('phone').value,
+            amount: '$' + parseFloat(document.getElementById('amount').value).toLocaleString(),
+            address: document.getElementById('address').value,
+            reason: document.getElementById('reason').value,
+            status: 'Pending Review'
+        };
+
+        applications.unshift(newApp);
+        localStorage.setItem('pt_grant_applications', JSON.stringify(applications));
+
+        const msg = document.getElementById('success-message');
+        msg.style.display = 'block';
+        
+        document.getElementById('application-form').reset();
+        document.querySelectorAll('.option-card').forEach(card => card.classList.remove('selected'));
+        document.getElementById('application-form').style.display = 'none';
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderAdminTable() {
+        const tbody = document.getElementById('admin-table-body');
+        tbody.innerHTML = '';
+
+        if(applications.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color: #888;">No applications submitted yet.</td></tr>`;
+            return;
+        }
+
+        applications.forEach(app => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${app.date}</td>
+                <td><strong>${app.name}</strong><br><small>${app.address}</small></td>
+                <td><span style="color:var(--primary); font-weight:600;">${app.type}</span></td>
+                <td>${app.amount}</td>
+                <td>${app.email}<br><small>${app.phone}</small></td>
+                <td><span class="badge badge-pending">${app.status}</span></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    window.onload = function() {
+        renderAdminTable();
+    };
+</script>
+
+</body>
+</html>
